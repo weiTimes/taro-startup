@@ -2,34 +2,26 @@ import Taro, { Component } from '@tarojs/taro';
 import { View, Button, Text } from '@tarojs/components';
 import { connect } from '@tarojs/redux';
 
-import { add, minus, asyncAdd, getData } from '@/actions/counter';
-import { sum } from '@/utils/index';
-
 import './index.scss';
 
-@connect(
-  ({ counter }) => ({
-    counter
-  }),
-  dispatch => ({
-    add() {
-      dispatch(add());
-    },
-    dec() {
-      dispatch(minus());
-    },
-    asyncAdd() {
-      dispatch(asyncAdd());
-    },
-    getData() {
-      dispatch(getData());
-    }
-  })
-)
+@connect(({ index, loading }) => ({
+  ...index,
+  ...loading
+}))
 class Index extends Component {
   config = {
     navigationBarTitleText: '首页'
   };
+
+  componentWillMount() {
+    // 登录
+    // const token = Taro.getStorageSync('token');
+    // if(!token) {
+    //   login().then(res => {
+    // 查询、存储用户信息
+    // });
+    // }
+  }
 
   componentWillReceiveProps(nextProps) {
     console.log(this.props, nextProps);
@@ -41,32 +33,36 @@ class Index extends Component {
 
   componentDidHide() {}
 
-  render() {
-    const { counter } = this.props;
-    const { list } = counter;
+  toggleShow = () => {
+    const { dispatch, isShowPanel } = this.props;
 
-    console.log(list, 'list');
+    dispatch({
+      type: 'index/save',
+      payload: {
+        isShowPanel: !isShowPanel
+      }
+    });
+  };
+
+  render() {
+    const { isShowPanel } = this.props;
 
     return (
-      <View className='index'>
-        <Button className='add_btn' onClick={this.props.add}>
-          +
-        </Button>
-        <Button className='dec_btn' onClick={this.props.dec}>
-          -
-        </Button>
-        <Button className='dec_btn' onClick={this.props.asyncAdd}>
-          async
-        </Button>
-        <View>
-          <Text>{this.props.counter.num}</Text>
-        </View>
+      <View className="index">
         <View>
           <Text>Hello, World</Text>
-          <Text>{sum(3, 4)}</Text>
         </View>
-        <Button onClick={this.props.getData}>获取数据</Button>
-        <View>{list.name}</View>
+        <Button onClick={this.toggleShow}>切换</Button>
+        {isShowPanel && <View>我显示了</View>}
+        <Button
+          className="dec_btn"
+          onGetUserInfo={data => {
+            console.log(data.detail.userInfo, '保存用户信息data');
+          }}
+          open-type="getUserInfo"
+        >
+          更新用户信息
+        </Button>
       </View>
     );
   }

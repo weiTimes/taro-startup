@@ -5,6 +5,7 @@ import { HTTP_STATUS } from '../constants/statusCode';
 
 const METHOD_GET = 'get';
 const METHOD_POST = 'post';
+const TRY_AGAIN_COUNT = 3; // 请求失败后重试次数
 
 const getApi = (url, params) => {
   let thisParam = { ...params };
@@ -47,16 +48,28 @@ const postFormApi = (url, params) => {
   return requestApi(config);
 };
 
-const requestApi = config => {
+const requestApi = (config, tryAgainCount = TRY_AGAIN_COUNT) => {
   // 失败后重试 3次
   // 添加 token
-  return Taro.request(config).then(res => {
-    if (res.statusCode === HTTP_STATUS.SUCCESS) {
-      return res.data;
-    } else {
+  const token = Taro.getStorageSync('token');
+  const header = Object.assign({}, config.header, { token });
+
+  return Taro.request({ ...config, header })
+    .then(res => {
+      if (res.statusCode === HTTP_STATUS.SUCCESS) {
+        return res.data;
+      } else {
+        if (tryAgainCount) {
+          requestApi(config, tryAgainCount - 1);
+        }
+      }
+    })
+    .catch(e => {
+      if (tryAgainCount) {
+        requestApi(config, tryAgainCount - 1);
+      }
       // error('request_api_err'); // 上报日志、打印控制台
-    }
-  });
+    });
 };
 
 const genUrl = (url, params) => {
