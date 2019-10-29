@@ -1,81 +1,75 @@
 import Taro from '@tarojs/taro';
-import queryString from 'query-string';
 
-import { HTTP_STATUS } from '../constants/statusCode';
+import { BASE_URL } from '../constants/config';
 
-const METHOD_GET = 'get';
-const METHOD_POST = 'post';
 const TRY_AGAIN_COUNT = 3; // 请求失败后重试次数
 
-const getApi = (url, params) => {
-  let thisParam = { ...params };
-  if (!thisParam._timestamp) {
-    thisParam._timestamp = Date.now();
+const request = (
+  options = {
+    url: '', // *
+    method: 'GET', // *
+    params: {}, // *
+    tryAgainCount: TRY_AGAIN_COUNT,
+    type: 'json' // json / form
   }
-  let requestUrl = genUrl(url, thisParam);
-
-  let config = {
-    method: METHOD_GET,
-    url: requestUrl
-  };
-
-  return requestApi(config);
-};
-
-const postApi = (url, params) => {
-  let config = {
-    method: METHOD_POST,
-    header: {
-      'Content-Type': 'application/json' // x-www-form-urlencoded
-    },
-    data: JSON.stringify(params),
-    url: url
-  };
-
-  return requestApi(config);
-};
-
-const postFormApi = (url, params) => {
-  let config = {
-    method: METHOD_POST,
-    header: {
-      'Content-Type': 'application/x-www-form-urlencoded' // x-www-form-urlencoded
-    },
-    data: encodeParams(params),
-    url: url
-  };
-
-  return requestApi(config);
-};
-
-const requestApi = (config, tryAgainCount = TRY_AGAIN_COUNT) => {
-  // 失败后重试 3次
-  // 添加 token
+) => {
+  const { url, method, tryAgainCount, type } = options;
+  let { params } = options;
   const token = Taro.getStorageSync('token');
-  const header = Object.assign({}, config.header, { token });
 
-  return Taro.request({ ...config, header })
-    .then(res => {
-      if (res.statusCode === HTTP_STATUS.SUCCESS) {
-        return res.data;
+  let header = {
+    'Content-Type':
+      type === 'form' ? 'application/x-www-form-urlencoded' : 'application/json'
+  };
+
+  if (token) {
+    header = {
+      ...header,
+      token
+    };
+  }
+  if (method === 'GET') {
+    // 加入时间戳，放置浏览器缓存
+    params = {
+      ...params,
+      _timestamp: Date.now()
+    };
+  }
+  if (type === 'form') {
+    params = encodeParams(params);
+  }
+
+  return Taro.request({
+    url: BASE_URL + url,
+    data: params,
+    header,
+    method: method.toUpperCase()
+  }).then(res => {
+    const { statusCode, data } = res;
+    const { code, message } = data;
+
+    if (statusCode >= 200 && statusCode < 300) {
+      if (code !== '0') {
+        // 业务处理失败
+        Taro.showToast({
+          title: `${message}~` || code,
+          icon: 'none',
+          mask: true
+        });
+      }
+      return data;
+    } else {
+      if (tryAgainCount > 0) {
+        // 重试机制
+        request({
+          ...options,
+          tryAgainCount: tryAgainCount - 1
+        });
       } else {
-        if (tryAgainCount) {
-          requestApi(config, tryAgainCount - 1);
-        }
+        throw new Error(`网络请求错误，状态码${statusCode}`);
       }
-    })
-    .catch(e => {
-      if (tryAgainCount) {
-        requestApi(config, tryAgainCount - 1);
-      }
-      // error('request_api_err'); // 上报日志、打印控制台
-    });
-};
-
-const genUrl = (url, params) => {
-  let paramStr = queryString.stringify(params);
-  let splitChar = url.indexOf('?') === -1 ? '?' : '&';
-  return url + splitChar + paramStr;
+    }
+  });
 };
 
 const encodeParams = params => {
@@ -90,4 +84,4 @@ const encodeParams = params => {
   return paramArr.join('&');
 };
 
-export { getApi, postApi, postFormApi };
+export default request;

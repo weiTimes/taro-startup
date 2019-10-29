@@ -42,24 +42,28 @@ class Index extends Component {
         isShowPanel: !isShowPanel
       }
     });
+    dispatch({
+      type: 'index/getUser'
+    });
   };
 
   render() {
-    const { isShowPanel } = this.props;
+    const { isShowPanel, name } = this.props;
 
     return (
-      <View className="index">
+      <View className='index'>
         <View>
           <Text>Hello, World</Text>
         </View>
         <Button onClick={this.toggleShow}>切换</Button>
         {isShowPanel && <View>我显示了</View>}
+        <Text>{name}</Text>
         <Button
-          className="dec_btn"
+          className='dec_btn'
           onGetUserInfo={data => {
             console.log(data.detail.userInfo, '保存用户信息data');
           }}
-          open-type="getUserInfo"
+          open-type='getUserInfo'
         >
           更新用户信息
         </Button>
