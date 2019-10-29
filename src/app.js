@@ -6,7 +6,7 @@ import dva from './utils/dva';
 import Index from './pages/index';
 import models from './model';
 
-import './app.scss';
+import './styles/base.scss';
 
 // 如果需要在 h5 环境中开启 React Devtools
 // 取消以下注释：

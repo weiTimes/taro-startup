@@ -1,6 +1,7 @@
 import Taro, { Component } from '@tarojs/taro';
 import { View, Button, Text } from '@tarojs/components';
 import { connect } from '@tarojs/redux';
+import { AtButton } from 'taro-ui';
 
 import './index.scss';
 
@@ -67,6 +68,7 @@ class Index extends Component {
         >
           更新用户信息
         </Button>
+        <AtButton type='primary'>我是taro-ui的按钮</AtButton>
       </View>
     );
   }
